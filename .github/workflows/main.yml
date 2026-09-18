@@ -116,12 +116,12 @@ jobs:
               pip install -r "$extractDir\requirements.txt"
           }
 
-          Write-Host "[5/5] Launching one.py in background..."
-          if (Test-Path "$extractDir\one.py") {
-              Start-Process -FilePath "python.exe" -ArgumentList "one.py" -WorkingDirectory $extractDir -RedirectStandardOutput $logFile -RedirectStandardError $logFile
-              Write-Host "one.py started! Live logs streaming to Desktop\bot_log.txt"
+          Write-Host "[5/5] Launching run_session.py in background..."
+          if (Test-Path "$extractDir\run_session.py") {
+              Start-Process -FilePath "python.exe" -ArgumentList "run_session.py" -WorkingDirectory $extractDir -RedirectStandardOutput $logFile -RedirectStandardError $logFile
+              Write-Host "run_session.py started! Live logs streaming to Desktop\bot_log.txt"
           } else {
-              Write-Warning "one.py not found in $extractDir"
+              Write-Warning "run_session.py not found in $extractDir"
           }
 
           # Copy run.bat to Desktop for manual rerun if needed

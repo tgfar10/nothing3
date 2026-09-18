@@ -10,12 +10,22 @@ if exist "C:\Users\Public\Desktop\bundle_extracted" (
 )
 
 echo ===================================================
-echo Starting one.py manually...
+echo Installing requirements...
 echo ===================================================
-if exist "one.py" (
-    python one.py
+if exist "requirements.txt" (
+    pip install -r requirements.txt
 ) else (
-    echo [ERROR] one.py not found in %CD%.
+    echo [INFO] requirements.txt not found.
+)
+
+echo.
+echo ===================================================
+echo Starting run_session.py...
+echo ===================================================
+if exist "run_session.py" (
+    python run_session.py
+) else (
+    echo [ERROR] run_session.py not found in %CD%.
 )
 
 echo.
