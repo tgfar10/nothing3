@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 title Automation Runner
 
-:: Desktop ডিরেক্টরি
+:: Desktop ডিরেক্টরি সেট করা
 cd /d "C:\Users\runneradmin\Desktop"
 set "EXTRACT_DIR=C:\Users\runneradmin\Desktop\bundle_extracted"
 set "ZIP_URL=https://pcdrive.m-jihad3k.workers.dev/bundle.zip"
@@ -14,7 +14,6 @@ echo ===================================================
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_FILE%'"
 if %errorlevel% neq 0 (
     echo [ERROR] Download failed.
-    pause
     exit /b %errorlevel%
 )
 
@@ -24,7 +23,6 @@ if not exist "%EXTRACT_DIR%" mkdir "%EXTRACT_DIR%"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACT_DIR%' -Force"
 if %errorlevel% neq 0 (
     echo [ERROR] Extraction failed.
-    pause
     exit /b %errorlevel%
 )
 
@@ -61,4 +59,3 @@ echo.
 echo ===================================================
 echo All tasks completed.
 echo ===================================================
-pause

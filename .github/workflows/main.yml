@@ -89,26 +89,23 @@ jobs:
         env:
           TG_SESSION_DATA: ${{ secrets.TG_SESSION_DATA }}
         run: |
-          # 1. এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা (সিস্টেম এবং ইউজার লেভেলে)
+          # 1. এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা
           [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'Machine')
           [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'User')
 
-          # 2. Desktop এবং Startup ডিরেক্টরি নিশ্চিত করা
+          # 2. Desktop ফোল্ডার নিশ্চিত করা এবং run.bat কপি করা
           $desktopPath = "C:\Users\runneradmin\Desktop"
-          $startupPath = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
-          
           if (!(Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath -Force }
-          if (!(Test-Path $startupPath)) { New-Item -ItemType Directory -Path $startupPath -Force }
 
-          # 3. run.bat ফাইলটি Desktop এবং Startup ফোল্ডারে রাখা
           $batSource = Join-Path $env:GITHUB_WORKSPACE "run.bat"
-          if (Test-Path $batSource) {
-              Copy-Item -Path $batSource -Destination (Join-Path $desktopPath "run.bat") -Force
-              Copy-Item -Path $batSource -Destination (Join-Path $startupPath "run.bat") -Force
-              Write-Host "run.bat copied to Desktop and configured for auto-launch on RDP login."
-          } else {
-              Write-Warning "run.bat not found at $batSource"
-          }
+          $batDest = Join-Path $desktopPath "run.bat"
+          Copy-Item -Path $batSource -Destination $batDest -Force
+
+          # 3. RDP লগইন ছাড়াই সাথে সাথে ব্যাকগ্রাউন্ডে রান শুরু করা (এবং লগ ফাইলে আউটপুট সেভ করা)
+          $logPath = Join-Path $desktopPath "runner_log.txt"
+          Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$batDest`" > `"$logPath`" 2>&1" -WindowStyle Hidden
+
+          Write-Host "Script started in background. Logs are streaming to Desktop\runner_log.txt"
 
       - name: Maintain Connection
         run: |
