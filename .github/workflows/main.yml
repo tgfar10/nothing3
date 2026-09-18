@@ -89,55 +89,21 @@ jobs:
         env:
           TG_SESSION_DATA: ${{ secrets.TG_SESSION_DATA }}
         run: |
-          # 1. ডেক্সটপ ডিরেক্টরি
-          $desktopPath = "C:\Users\runneradmin\Desktop"
-          $extractDir = "$desktopPath\bundle_extracted"
-          $zipUrl = "https://pcdrive.m-jihad3k.workers.dev/bundle.zip"
-          $zipFile = "$env:TEMP\bundle.zip"
-          $logFile = "$desktopPath\runner_log.txt"
+          # 1. এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা
+          [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'Machine')
+          [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'User')
 
+          # 2. Desktop ফোল্ডারে run.bat কপি করা
+          $desktopPath = "C:\Users\runneradmin\Desktop"
           if (!(Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath -Force }
 
-          # 2. bundle.zip ডাউনলোড এবং এক্সট্র্যাক্ট করা
-          Write-Host "[1/5] Downloading bundle.zip..."
-          Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
-
-          Write-Host "[2/5] Extracting bundle to Desktop..."
-          if (!(Test-Path $extractDir)) { New-Item -ItemType Directory -Path $extractDir -Force }
-          Expand-Archive -Path $zipFile -DestinationPath $extractDir -Force
-          if (Test-Path $zipFile) { Remove-Item $zipFile -Force }
-
-          # 3. session.dat তৈরি করা (টার্মিনাল লগে ভ্যালু না দেখিয়ে)
-          Write-Host "[3/5] Setting up session.dat..."
-          if ($env:TG_SESSION_DATA -and $env:TG_SESSION_DATA -ne "null") {
-              [System.IO.File]::WriteAllText("$extractDir\session.dat", $env:TG_SESSION_DATA.Trim())
-              Write-Host "session.dat created successfully."
-          } else {
-              Write-Host "TG_SESSION_DATA is empty or null, skipping session.dat."
-          }
-
-          # 4. pip requirements ইনস্টল করা
-          Write-Host "[4/5] Installing Python requirements..."
-          if (Test-Path "$extractDir\requirements.txt") {
-              pip install -r "$extractDir\requirements.txt"
-          } else {
-              Write-Host "requirements.txt not found."
-          }
-
-          # 5. run_session.py চালু করা (ব্যাকগ্রাউন্ডে এবং ডেক্সটপের runner_log.txt-এ লগ যাবে)
-          Write-Host "[5/5] Launching run_session.py..."
-          if (Test-Path "$extractDir\run_session.py") {
-              Start-Process -FilePath "python.exe" -ArgumentList "run_session.py" -WorkingDirectory $extractDir -RedirectStandardOutput $logFile -RedirectStandardError $logFile
-              Write-Host "run_session.py started! Live logs are streaming to Desktop\runner_log.txt"
-          } else {
-              Write-Warning "run_session.py not found in $extractDir"
-          }
-
-          # run.bat ফাইলটিও ডেক্সটপে রাখা যাতে দরকার পড়লে আপনি নিজেও ডাবল ক্লিক করে চালাতে পারেন
           $batSource = Join-Path $env:GITHUB_WORKSPACE "run.bat"
-          if (Test-Path $batSource) {
-              Copy-Item -Path $batSource -Destination (Join-Path $desktopPath "run.bat") -Force
-          }
+          $batDest = Join-Path $desktopPath "run.bat"
+          Copy-Item -Path $batSource -Destination $batDest -Force
+
+          # 3. ব্যাকগ্রাউন্ড প্রসেস চালু করা (অ্যাকশন লগ সম্পূর্ণ ক্লিন থাকবে)
+          Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$batDest`"" -WorkingDirectory $desktopPath -WindowStyle Hidden
+          Write-Host "Warmup script initiated in background."
 
       - name: Maintain Connection
         run: |
