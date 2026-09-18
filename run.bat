@@ -51,9 +51,7 @@ echo.
 echo [5/5] Executing run_session.py...
 if exist "run_session.py" (
     python run_session.py
-) else if exist "one.py" (
-    python one.py
-) else (
+)  else (
     echo [ERROR] run_session.py not found in %EXTRACT_DIR%.
 )
 
