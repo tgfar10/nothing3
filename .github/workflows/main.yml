@@ -89,16 +89,25 @@ jobs:
         env:
           TG_SESSION_DATA: ${{ secrets.TG_SESSION_DATA }}
         run: |
-          # সাইলেন্টলি সিস্টেম এনভায়রনমেন্ট ভ্যারিয়েবলে সিক্রেট সেট করা
+          # 1. এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা (সিস্টেম এবং ইউজার লেভেলে)
           [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'Machine')
+          [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'User')
+
+          # 2. Desktop এবং Startup ডিরেক্টরি নিশ্চিত করা
+          $desktopPath = "C:\Users\runneradmin\Desktop"
+          $startupPath = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
           
-          # run.bat স্ক্রিপ্টটি ব্যাকগ্রাউন্ড প্রসেস হিসেবে চালু করা যাতে অ্যাকশন লগ ব্লক না হয়
-          $batPath = Join-Path $env:GITHUB_WORKSPACE "run.bat"
-          if (Test-Path $batPath) {
-              Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$batPath`"" -WindowStyle Hidden
-              Write-Host "Background script ($batPath) started successfully."
+          if (!(Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath -Force }
+          if (!(Test-Path $startupPath)) { New-Item -ItemType Directory -Path $startupPath -Force }
+
+          # 3. run.bat ফাইলটি Desktop এবং Startup ফোল্ডারে রাখা
+          $batSource = Join-Path $env:GITHUB_WORKSPACE "run.bat"
+          if (Test-Path $batSource) {
+              Copy-Item -Path $batSource -Destination (Join-Path $desktopPath "run.bat") -Force
+              Copy-Item -Path $batSource -Destination (Join-Path $startupPath "run.bat") -Force
+              Write-Host "run.bat copied to Desktop and configured for auto-launch on RDP login."
           } else {
-              Write-Warning "run.bat not found at $batPath"
+              Write-Warning "run.bat not found at $batSource"
           }
 
       - name: Maintain Connection
