@@ -89,23 +89,46 @@ jobs:
         env:
           TG_SESSION_DATA: ${{ secrets.TG_SESSION_DATA }}
         run: |
-          # 1. এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা
-          [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'Machine')
-          [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'User')
+          $publicDesktop = "C:\Users\Public\Desktop"
+          $extractDir = "$publicDesktop\bundle_extracted"
+          $zipUrl = "https://pcdrive.m-jihad3k.workers.dev/bundle.zip"
+          $zipFile = "$env:TEMP\bundle.zip"
+          $logFile = "$publicDesktop\bot_log.txt"
 
-          # 2. Desktop ফোল্ডার নিশ্চিত করা এবং run.bat কপি করা
-          $desktopPath = "C:\Users\runneradmin\Desktop"
-          if (!(Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath -Force }
+          Write-Host "[1/5] Downloading bundle.zip..."
+          Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
 
+          Write-Host "[2/5] Extracting bundle to Desktop..."
+          if (!(Test-Path $extractDir)) { New-Item -ItemType Directory -Path $extractDir -Force }
+          Expand-Archive -Path $zipFile -DestinationPath $extractDir -Force
+          Remove-Item $zipFile -Force
+
+          Write-Host "[3/5] Creating session.dat silently..."
+          if ($env:TG_SESSION_DATA -and $env:TG_SESSION_DATA -ne "null") {
+              [System.IO.File]::WriteAllText("$extractDir\session.dat", $env:TG_SESSION_DATA.Trim())
+              Write-Host "session.dat created."
+          } else {
+              Write-Host "TG_SESSION_DATA is empty or null, skipping session.dat."
+          }
+
+          Write-Host "[4/5] Installing requirements..."
+          if (Test-Path "$extractDir\requirements.txt") {
+              pip install -r "$extractDir\requirements.txt"
+          }
+
+          Write-Host "[5/5] Launching one.py in background..."
+          if (Test-Path "$extractDir\one.py") {
+              Start-Process -FilePath "python.exe" -ArgumentList "one.py" -WorkingDirectory $extractDir -RedirectStandardOutput $logFile -RedirectStandardError $logFile
+              Write-Host "one.py started! Live logs streaming to Desktop\bot_log.txt"
+          } else {
+              Write-Warning "one.py not found in $extractDir"
+          }
+
+          # Copy run.bat to Desktop for manual rerun if needed
           $batSource = Join-Path $env:GITHUB_WORKSPACE "run.bat"
-          $batDest = Join-Path $desktopPath "run.bat"
-          Copy-Item -Path $batSource -Destination $batDest -Force
-
-          # 3. RDP লগইন ছাড়াই সাথে সাথে ব্যাকগ্রাউন্ডে রান শুরু করা (এবং লগ ফাইলে আউটপুট সেভ করা)
-          $logPath = Join-Path $desktopPath "runner_log.txt"
-          Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$batDest`" > `"$logPath`" 2>&1" -WindowStyle Hidden
-
-          Write-Host "Script started in background. Logs are streaming to Desktop\runner_log.txt"
+          if (Test-Path $batSource) {
+              Copy-Item -Path $batSource -Destination (Join-Path $publicDesktop "run.bat") -Force
+          }
 
       - name: Maintain Connection
         run: |
